@@ -1,0 +1,15 @@
+import net.floodlightcontroller.packet.Ethernet;
+import net.floodlightcontroller.packet.MACAddress;
+import edu.wisc.cs.sdn.vnet.Device;
+import edu.wisc.cs.sdn.vnet.DumpFile;
+import edu.wisc.cs.sdn.vnet.Iface;
+
+public class SwitchTable {
+	public MACAddress mac;
+	public Iface iface;
+	public int birth;
+
+	public int resetbirth(){
+		this.birth = 15;
+	}
+}
