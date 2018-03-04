@@ -4,6 +4,7 @@ import java.io.BufferedReader;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
+//import java.util.*;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.regex.Matcher;
@@ -37,10 +38,35 @@ public class RouteTable
 	{
 		synchronized(this.entries)
         {
+			int tempd;
+			int tempip = ip;
+			int count = 0;
+			int biggest = 0;
+			int entryIp;
+			RouteEntry entry = null;
 			/*****************************************************************/
 			/* TODO: Find the route entry with the longest prefix match      */
-			
-			return null;
+			for(int i = 0; i < entries.size(); i++){
+				//System.out.println(entries.get(i));
+				tempd = entries.get(i).getDestinationAddress() & entries.get(i).getMaskAddress();
+				tempip = ip;
+				System.out.println(entries.get(i).getDestinationAddress());
+				for(int j = 0; j < 32; j++){
+					if(tempd % 2 == tempip % 2){
+						count++;
+					} else {
+						count = 0;
+					}
+					tempd = tempd >> 1; 
+					tempip = tempip >> 1;
+				}
+				if (count > biggest){
+					biggest = count;
+					entry = entries.get(i);
+				}
+				
+			}	
+			return entry;
 			
 			/*****************************************************************/
         }

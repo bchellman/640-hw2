@@ -3,8 +3,14 @@ package edu.wisc.cs.sdn.vnet.rt;
 import edu.wisc.cs.sdn.vnet.Device;
 import edu.wisc.cs.sdn.vnet.DumpFile;
 import edu.wisc.cs.sdn.vnet.Iface;
+import java.util.Map;
+import java.nio.ByteBuffer;
 
 import net.floodlightcontroller.packet.Ethernet;
+import net.floodlightcontroller.packet.IPv4;
+import net.floodlightcontroller.packet.IPacket;
+import net.floodlightcontroller.packet.MACAddress;
+
 
 /**
  * @author Aaron Gember-Jacobson and Anubhavnidhi Abhashkumar
@@ -84,9 +90,68 @@ public class Router extends Device
 		
 		/********************************************************************/
 		/* TODO: Handle packets                                             */
-		//System.out.println(etherPacket.toString());
-		//System.out.println(inIface.toString());
-		
+		if(etherPacket.getEtherType() != Ethernet.TYPE_IPv4){
+			System.out.println("Not IPv4");
+			return;
+		}
+		IPv4 header = (IPv4) etherPacket.getPayload();
+		short chcksum;
+		chcksum =  header.getChecksum();
+		header.resetChecksum();
+		header.serialize();
+		System.out.println(header.getChecksum());
+		if(chcksum != header.getChecksum())
+		{	System.out.println("bad chcksum");
+			return;}
+		byte ttl = (byte) (header.getTtl() - 1);
+		if(ttl == 0)
+			{System.out.println("ttl 0");
+			return;}
+		header = header.setTtl(ttl);			
+		int ip = header.getDestinationAddress();
+		for(Map.Entry<String, Iface> entry : this.interfaces.entrySet()){
+			Iface value = entry.getValue();
+			if(ip == value.getIpAddress()){
+				System.out.println("ip = interface");
+				return;	
+			}
+		}
+		header.resetChecksum();
+		header.serialize();
+		etherPacket.setPayload((IPacket) header);
+		RouteEntry rentry = routeTable.lookup(ip);
+		System.out.println("Using ip address: " + ip);
+		if(rentry == null)
+			{System.out.println("no entryy");
+			return;}
+		if(rentry.getGatewayAddress() == 0){
+			//ip = rentry.getDestinationAddress();
+			ip = header.getDestinationAddress();
+			System.out.println("Using destination address: " + ip);			
+		} else {
+			ip = rentry.getGatewayAddress();
+			System.out.println("Using gateway address: " + ip);
+		}
+		System.out.println(this.arpCache.toString());	
+		ArpEntry aentry = this.arpCache.lookup(ip);
+		if(aentry == null) {System.out.println("aentry null"); aentry = this.arpCache.lookup(header.getDestinationAddress());}
+		MACAddress destMAC = aentry.getMac();
+		ArpEntry sentry = this.arpCache.lookup(rentry.getInterface().getIpAddress());
+		MACAddress sourceMAC = sentry.getMac();
+		etherPacket.setDestinationMACAddress(destMAC.toString());
+		etherPacket.setSourceMACAddress(sourceMAC.toString());
+		sendPacket(etherPacket, rentry.getInterface());	 
 		/********************************************************************/
+	}
+	public short calculateChecksum(IPv4 header){
+		int accumulation = 0;
+		byte[] data = new byte[header.getTotalLength()];
+		ByteBuffer bb = ByteBuffer.wrap(data);
+		for(int i = 0; i < header.getHeaderLength() * 2; ++i){
+			accumulation += 0xffff & bb.getShort();
+		}	
+		accumulation = ((accumulation >> 16) & 0xffff)
+			+ (accumulation & 0xffff);
+		return (short) (~accumulation & 0xffff);
 	}
 }
