@@ -20,7 +20,7 @@ import java.util.Map;
 
 public class Switch extends Device
 {
-	ArrayList<SwitchTable> st = new ArrayList<SwitchTable> ();	
+	private ArrayList<SwitchTable> st = new ArrayList<SwitchTable> ();	
 	public static final int ML_15S = 15 * 1000; 
 	//ListIterator<SwitchTable> 
 	/**
@@ -52,43 +52,53 @@ public class Switch extends Device
 		/* TODO: Handle packets                                             */
 		MACAddress sourceMac = etherPacket.getSourceMAC();
 		MACAddress destMac = etherPacket.getDestinationMAC();
-		//System.out.println(sourceMac.toString());	
-		//System.out.println(destMac.toString());	
+		System.out.println(sourceMac.toString());	
+		System.out.println(destMac.toString());	
 		SwitchTable temp;
 		
 		// checking if sourceMac is in ArrayList
 		int found = foundMac(sourceMac);
+		System.out.println("SourceMac - Found: " + found);
 		if(found == -1){
 			temp = new SwitchTable(sourceMac, inIface);
-			st.add(temp);
+			this.st.add(temp);
 		} else {
-			st.get(found).resetbirth();
+			this.st.get(found).resetbirth();
 		}
 		
 		// checking if destMac is in Arrraylist
 		found = foundMac(destMac);
+		System.out.println("DestMac - Found: " + found);
+		//Iface same = null;
 		if(found == -1){
 			for(Map.Entry<String, Iface> entry : this.interfaces.entrySet()){
 				Iface value = entry.getValue();
 				if(!value.equals(inIface)){
-					//System.out.println(value.toString());
-					sendPacket(etherPacket, value);	
-				}
+					System.out.println(value.toString());
+					if(!sendPacket(etherPacket, value)) {
+						System.out.println("Failed to send packet with value: " + value.toString());
+					}	
+				} //else {
+				//	same = entry.getValue();
+				//}
 			}
 		} else {
-			//System.out.println(st.get(found).getIface().toString());
-			sendPacket(etherPacket, st.get(found).getIface());
+			System.out.println(this.st.get(found).getIface().toString());
+			sendPacket(etherPacket, this.st.get(found).getIface());
 		}
 	
 		// updating ArrayList entries.	
 		
-		ListIterator<SwitchTable> it = st.listIterator();	
+		ListIterator<SwitchTable> it = this.st.listIterator();	
 		while (it.hasNext()){
 			temp = it.next();
 			if(temp != null) {
 				if((System.currentTimeMillis() - temp.getTime()) > ML_15S) {
 					it.remove();
 				}
+			//	if(temp.getIface().equals(same)){
+			//		it.remove();
+			//	}
 			}					
 		}	
 		/********************************************************************/
@@ -98,7 +108,7 @@ public class Switch extends Device
 **/
 	public int foundMac(MACAddress mac){
 		SwitchTable temp;
-		ListIterator<SwitchTable> it = st.listIterator();
+		ListIterator<SwitchTable> it = this.st.listIterator();
 		while (it.hasNext()){
 			temp = it.next();
 			if(temp != null){

@@ -63,6 +63,11 @@ public class RouteTable
 				if (count > biggest){
 					biggest = count;
 					entry = entries.get(i);
+				} else if (count == biggest){	
+					//Choosing the longest prefix (mask address)
+					if(entries.get(i).getMaskAddress() > entry.getMaskAddress()){
+						entry = entries.get(i);
+					}
 				}
 				
 			}	

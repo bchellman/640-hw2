@@ -132,26 +132,16 @@ public class Router extends Device
 			ip = rentry.getGatewayAddress();
 			System.out.println("Using gateway address: " + ip);
 		}
-		System.out.println(this.arpCache.toString());	
+		//System.out.println(this.arpCache.toString());	
 		ArpEntry aentry = this.arpCache.lookup(ip);
-		if(aentry == null) {System.out.println("aentry null"); aentry = this.arpCache.lookup(header.getDestinationAddress());}
+		//if(aentry == null) {System.out.println("aentry null"); aentry = this.arpCache.lookup(header.getDestinationAddress());}
 		MACAddress destMAC = aentry.getMac();
 		ArpEntry sentry = this.arpCache.lookup(rentry.getInterface().getIpAddress());
-		MACAddress sourceMAC = sentry.getMac();
+		//MACAddress sourceMAC = sentry.getMac();
 		etherPacket.setDestinationMACAddress(destMAC.toString());
-		etherPacket.setSourceMACAddress(sourceMAC.toString());
+		//etherPacket.setSourceMACAddress(sourceMAC.toString());
+		etherPacket.setSourceMACAddress(rentry.getInterface().getMacAddress().toString());
 		sendPacket(etherPacket, rentry.getInterface());	 
 		/********************************************************************/
-	}
-	public short calculateChecksum(IPv4 header){
-		int accumulation = 0;
-		byte[] data = new byte[header.getTotalLength()];
-		ByteBuffer bb = ByteBuffer.wrap(data);
-		for(int i = 0; i < header.getHeaderLength() * 2; ++i){
-			accumulation += 0xffff & bb.getShort();
-		}	
-		accumulation = ((accumulation >> 16) & 0xffff)
-			+ (accumulation & 0xffff);
-		return (short) (~accumulation & 0xffff);
 	}
 }
