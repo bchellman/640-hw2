@@ -1,0 +1,59 @@
+package edu.wisc.cs.sdn.vnet.sw;
+
+import java.lang.Thread;
+import java.lang.Runnable;
+import java.util.Date;
+import java.util.ArrayList;
+import java.util.ListIterator;
+import java.util.Map;
+import java.lang.Thread;
+
+class RunnableThread implements Runnable {
+	private Thread t;
+	private String threadName;
+	private SwitchTable st;
+
+	RunnableThread(String name) {
+		threadName = name;
+	}
+
+	public void run() {
+		int stSize = 0;
+		while(true) {
+			 synchronized(st) {
+				stSize = this.st.size();	
+			 }	
+			if (stSize == 0) {
+				try {
+				//The sleep() method is invoked on the main thread to cause a one second delay.
+					Thread.currentThread().sleep(1000);
+				} catch (InterruptedException e) {
+				}
+				continue;	
+			}
+			 synchronized(st) {
+				ListIterator<SwitchTable> it = this.st.listIterator();	
+				while (it.hasNext()){
+					SwitchTable temp = it.next();
+					if(temp != null) {
+						if((System.currentTimeMillis() - temp.getTime()) > (15 * 1000)) {
+							it.remove();
+						}
+					}					
+				}
+			}	
+			try {
+			//The sleep() method is invoked on the main thread to cause a one second delay.
+				Thread.currentThread().sleep(1000);
+			} catch (InterruptedException e) {
+			}	
+		}
+	}
+	
+	public void start () {
+		if (t == null) {
+			t = new Thread(this, threadName);
+			t.start ();
+		}
+	}
+}

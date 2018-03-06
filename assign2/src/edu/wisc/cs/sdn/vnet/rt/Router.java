@@ -87,13 +87,8 @@ public class Router extends Device
 	{
 		System.out.println("*** -> Received packet: " +
                 etherPacket.toString().replace("\n", "\n\t"));
-		
-		/********************************************************************/
-		/* TODO: Handle packets                                             */
-		if(etherPacket.getEtherType() != Ethernet.TYPE_IPv4){
-			System.out.println("Not IPv4");
+		if(etherPacket.getEtherType() != Ethernet.TYPE_IPv4)
 			return;
-		}
 		IPv4 header = (IPv4) etherPacket.getPayload();
 		short chcksum;
 		chcksum =  header.getChecksum();
@@ -101,47 +96,32 @@ public class Router extends Device
 		header.serialize();
 		System.out.println(header.getChecksum());
 		if(chcksum != header.getChecksum())
-		{	System.out.println("bad chcksum");
-			return;}
+			return;
 		byte ttl = (byte) (header.getTtl() - 1);
 		if(ttl == 0)
-			{System.out.println("ttl 0");
-			return;}
+			return;
 		header = header.setTtl(ttl);			
 		int ip = header.getDestinationAddress();
 		for(Map.Entry<String, Iface> entry : this.interfaces.entrySet()){
 			Iface value = entry.getValue();
-			if(ip == value.getIpAddress()){
-				System.out.println("ip = interface");
+			if(ip == value.getIpAddress())
 				return;	
-			}
 		}
 		header.resetChecksum();
 		header.serialize();
 		etherPacket.setPayload((IPacket) header);
 		RouteEntry rentry = routeTable.lookup(ip);
-		System.out.println("Using ip address: " + ip);
 		if(rentry == null)
-			{System.out.println("no entryy");
-			return;}
+			return;
 		if(rentry.getGatewayAddress() == 0){
-			//ip = rentry.getDestinationAddress();
 			ip = header.getDestinationAddress();
-			System.out.println("Using destination address: " + ip);			
 		} else {
 			ip = rentry.getGatewayAddress();
-			System.out.println("Using gateway address: " + ip);
 		}
-		//System.out.println(this.arpCache.toString());	
 		ArpEntry aentry = this.arpCache.lookup(ip);
-		//if(aentry == null) {System.out.println("aentry null"); aentry = this.arpCache.lookup(header.getDestinationAddress());}
 		MACAddress destMAC = aentry.getMac();
-		ArpEntry sentry = this.arpCache.lookup(rentry.getInterface().getIpAddress());
-		//MACAddress sourceMAC = sentry.getMac();
 		etherPacket.setDestinationMACAddress(destMAC.toString());
-		//etherPacket.setSourceMACAddress(sourceMAC.toString());
 		etherPacket.setSourceMACAddress(rentry.getInterface().getMacAddress().toString());
 		sendPacket(etherPacket, rentry.getInterface());	 
-		/********************************************************************/
 	}
 }

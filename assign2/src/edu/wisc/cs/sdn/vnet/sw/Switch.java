@@ -10,6 +10,7 @@ import java.util.Date;
 import java.util.ArrayList;
 import java.util.ListIterator;
 import java.util.Map;
+import java.lang.Thread;
 
 //import edu.wisc.cs.sdn.vnet.sw.SwitchTable.java;
 
@@ -30,7 +31,55 @@ public class Switch extends Device
 	public Switch(String host, DumpFile logfile)
 	{
 		super(host,logfile);
+		// Thread thread1 = new XThread("thread1");
+		// Thread thread2 = new XThread("thread2");
+		
+		// thread1.start();
+
+		// long thread1ID = thread1.getId();
+
+		// if(Thread.currentThread().getId() == thread1ID) cullTable();
+
+		// thread2.start();
 	}
+
+/*
+* Not using Threads so method below not used
+*
+	public void cullTable(){
+		int stSize = 0;
+		while(true) {
+			 synchronized(st) {
+				stSize = this.st.size();	
+			 }	
+			if (stSize == 0) {
+				try {
+				//The sleep() method is invoked on the main thread to cause a one second delay.
+					Thread.currentThread().sleep(1000);
+				} catch (InterruptedException e) {
+				}
+				continue;	
+			}
+			 synchronized(st) {
+				ListIterator<SwitchTable> it = this.st.listIterator();	
+				while (it.hasNext()){
+					SwitchTable temp = it.next();
+					if(temp != null) {
+						if((System.currentTimeMillis() - temp.getTime()) > ML_15S) {
+							it.remove();
+						}
+					}					
+				}
+			}	
+			try {
+			//The sleep() method is invoked on the main thread to cause a one second delay.
+				Thread.currentThread().sleep(1000);
+			} catch (InterruptedException e) {
+			}	
+		}
+	}
+**
+*/
 
 	/**
 	 * Handle an Ethernet packet received on a specific interface.
@@ -41,52 +90,11 @@ public class Switch extends Device
 	{
 		System.out.println("*** -> Received packet: " +
                 etherPacket.toString().replace("\n", "\n\t"));
-		//byte[] mac2 = etherPacket.getSourceMACAddress();
-		//System.out.println("Debug");
-		//MACAddress mac = new MACAddress(mac2);
-		//System.out.println(Arrays.toString(mac2));//
-		//mac.toString(); 
-		//System.out.println("Debug");
-		//inIface.toString();
 		/********************************************************************/
-		/* TODO: Handle packets                                             */
 		MACAddress sourceMac = etherPacket.getSourceMAC();
 		MACAddress destMac = etherPacket.getDestinationMAC();
-		System.out.println(sourceMac.toString());	
-		System.out.println(destMac.toString());	
 		SwitchTable temp;
 		
-		// checking if sourceMac is in ArrayList
-		int found = foundMac(sourceMac);
-		System.out.println("SourceMac - Found: " + found);
-		if(found == -1){
-			temp = new SwitchTable(sourceMac, inIface);
-			this.st.add(temp);
-		} else {
-			this.st.get(found).resetbirth();
-		}
-		
-		// checking if destMac is in Arrraylist
-		found = foundMac(destMac);
-		System.out.println("DestMac - Found: " + found);
-		//Iface same = null;
-		if(found == -1){
-			for(Map.Entry<String, Iface> entry : this.interfaces.entrySet()){
-				Iface value = entry.getValue();
-				if(!value.equals(inIface)){
-					System.out.println(value.toString());
-					if(!sendPacket(etherPacket, value)) {
-						System.out.println("Failed to send packet with value: " + value.toString());
-					}	
-				} //else {
-				//	same = entry.getValue();
-				//}
-			}
-		} else {
-			System.out.println(this.st.get(found).getIface().toString());
-			sendPacket(etherPacket, this.st.get(found).getIface());
-		}
-	
 		// updating ArrayList entries.	
 		
 		ListIterator<SwitchTable> it = this.st.listIterator();	
@@ -96,11 +104,41 @@ public class Switch extends Device
 				if((System.currentTimeMillis() - temp.getTime()) > ML_15S) {
 					it.remove();
 				}
-			//	if(temp.getIface().equals(same)){
-			//		it.remove();
-			//	}
 			}					
 		}	
+
+		// checking if sourceMac is in ArrayList
+		int found;
+		// synchronized(st) {
+			found = foundMac(sourceMac);
+		// }
+		if(found == -1){
+			temp = new SwitchTable(sourceMac, inIface);
+			// synchronized(st) {
+				this.st.add(temp);
+			// }
+		} else {
+			// synchronized(st) {
+				this.st.get(found).resetbirth();
+			// }
+		}
+		
+		// checking if destMac is in Arrraylist
+		//synchronized(st) {
+			found = foundMac(destMac);
+		
+			//Iface same = null;
+			if(found == -1){
+				for(Map.Entry<String, Iface> entry : this.interfaces.entrySet()){
+					Iface value = entry.getValue();
+					if(!value.equals(inIface)){
+						sendPacket(etherPacket, value);
+					} 
+				}
+			} else {
+				sendPacket(etherPacket, this.st.get(found).getIface());
+			}
+		// }	
 		/********************************************************************/
 	}
 /**	return value -1: Didn't find Mac
